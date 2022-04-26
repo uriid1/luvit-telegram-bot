@@ -16,6 +16,16 @@ local bot = {
     ADMINID   = 0;
     DEBUG     = false;
 
+    -- Anti Spam conf & hash
+    anti_spam = {
+        users = {};
+        setting = {
+            mute_second = 5;
+            time        = 1;
+            count       = 4;
+        }
+    };
+
     -- Commands table
     cmd = {}
 
@@ -34,6 +44,10 @@ end
 -------------------------
 -- Power Functions
 -------------------------
+
+-- Anti spam detector
+bot.spam_detector = require("extensions.command_antispam_checker").spam_detector
+
 -- Pretty Print
 local pp = require('pretty-print').prettyPrint
 
@@ -66,41 +80,28 @@ local multipart_encode = require("libs.multipart-post")
 
 
 -------------------------
--- Anti spam
--------------------------
-bot.anti_spam = {}
-bot.anti_spam.users = {}
-bot.anti_spam.setting = {
-    mute_sec = 10;
-    time     = 1;
-    count    = 3;
-}
-
--- Export func
-bot.spam_detector = require("extensions.command_antispam_checker").spam_detector
-
-
--------------------------
 -- BOT EVENTS
 -------------------------
 bot.event = {}
-bot.event.onCommandSpammer = function(message)        end
+bot.event.onInformSpammer  = function(message)        end
 bot.event.onCallbackQuery  = function(callback)       end
 bot.event.onGetMessageText = function(message)        end
 bot.event.onMyChatMember   = function(my_chat_member) end
 
 
 -------------------------
--- BOT METHODS
+-- MAKE REQUEST
 -------------------------
--- Sending a package
-local function makeRequest(method, request_body, callback)
+-- With body 
+local makeRequest = function(method, request_body, callback)
 
     -- Make multipart-data
     local body, boundary = multipart_encode(request_body)
 
-    -- Make options
-    local options = {
+    -- Request
+    local req = https.request({
+
+        -- Make options
         hostname = 'api.telegram.org',
         port = 443,
         path = string.format("/bot%s%s", bot.TOKEN, method),
@@ -109,10 +110,8 @@ local function makeRequest(method, request_body, callback)
             ['Content-Type'] = "multipart/form-data; boundary=" .. boundary;
             ['Content-Length'] = string.len(body)
         }
-    }
 
-    -- Request
-    local req = https.request(options, function() end)
+    }, function() end)
 
     -- Get response
     req:on("response", function(response)
@@ -133,6 +132,54 @@ local function makeRequest(method, request_body, callback)
 
     req:write(body)
     req:done()
+
+end
+
+-- With no body
+local makeRequestNoBody = function(method, callback)
+
+    -- Request
+    local req = https.request({
+
+        -- Make options
+        hostname = 'api.telegram.org',
+        port = 443,
+        path = string.format("/bot%s%s", bot.TOKEN, method),
+        method = 'POST'
+
+    }, function() end)
+
+    -- Get response
+    req:on("response", function(response)
+
+        local data = ""
+
+        response:on("data", function(chunk)
+            data = data .. chunk
+        end)
+
+        response:on("end", function()
+            if callback then
+                callback(json.decode(data))
+            end
+        end)
+
+    end)
+
+    req:done()
+
+end
+
+
+-------------------------
+-- BOT METHODS
+-------------------------
+
+-- Get basic information about the bot
+function bot:getMe(callback)
+
+    -- Send the package
+    makeRequestNoBody("/getMe", callback)
 
 end
 
@@ -288,7 +335,7 @@ function bot:callCommand(user_command, text, user_id, message)
 
         -- Anti Spam
         if bot.spam_detector(bot.anti_spam, message) then
-            bot.event.onCommandSpammer(message)
+            bot.event.onInformSpammer(message)
             return
         end
 
@@ -438,8 +485,10 @@ local send_certificate = function(param, callback)
     --
     sert:close()
 
-    -- Make options
-    local options = {
+    -- Request
+    local req = https.request({
+
+        -- Make options
         hostname = 'api.telegram.org',
         port = 443,
         path = string.format("/bot%s/setwebhook", param.token),
@@ -448,10 +497,8 @@ local send_certificate = function(param, callback)
             ['content-type'] = "multipart/form-data; boundary=" .. boundary;
             ['content-length'] = string.len(body);
         }
-    };
 
-    -- Request
-    local req = https.request(options, function() end)
+    }, function() end)
 
     -- Get response
     req:on("response", function(response)
