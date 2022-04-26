@@ -1,8 +1,8 @@
 
 --[[ Instruction
 1) Move this example to the luvit-telegram-bot directory
-2) 
-2) run luvit echo_bot
+2) Set bot token, url, cert, port 
+3) run luvit echo_bot
 --]]
 
 -- Bot
@@ -16,7 +16,8 @@ local PORT  = 5000
 
 -- Event get message
 bot.event.onGetMessageText = function(message)
-    
+        
+    -- Send message
     bot:sendMessage({
         text = message.text;
         chat_id = message.chat.id;

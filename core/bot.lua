@@ -11,10 +11,10 @@
 local bot = {
 
     -- Const
-    ADMINID = 0;
-    TOKEN = "";
-    DEBUG = false;
+    TOKEN     = "";
     PARSEMODE = "HTML";
+    ADMINID   = 0;
+    DEBUG     = false;
 
     -- Commands table
     cmd = {}
@@ -87,7 +87,7 @@ bot.event = {}
 bot.event.onCommandSpammer = function(message)        end
 bot.event.onCallbackQuery  = function(callback)       end
 bot.event.onGetMessageText = function(message)        end
-bot.event.onAddToChat      = function(my_chat_member) end
+bot.event.onMyChatMember   = function(my_chat_member) end
 
 
 -------------------------
@@ -308,9 +308,8 @@ end
 
 
 -------------------------------
--- Parse Update Callbacks 
+-- EVENT HANDLER
 -------------------------------
-
 local call_event = function(event, message)
 
     timer.setImmediate(function()
@@ -334,9 +333,8 @@ end
 
 
 -------------------------
--- BOT WEBHOOK
+-- PARSE TG MSG
 -------------------------
-
 local parse_query = function(result)
 
     -- No result
@@ -350,7 +348,7 @@ local parse_query = function(result)
     --
     -- Add bot to chat
     if (result.my_chat_member) then
-        return call_event(bot.event.onAddToChat, result.my_chat_member)
+        return call_event(bot.event.onMyChatMember, result.my_chat_member)
 
     -- Edited Message
     elseif (result.edited_message) then
