@@ -1,7 +1,7 @@
 --[[ Instruction
 1) Move this example to the luvit-telegram-bot directory
 2) Set bot token, url, cert, port 
-3) run luvit echo_bot
+3) run luvit message_anti_spam
 --]]
 
 -- Bot

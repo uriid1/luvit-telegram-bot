@@ -10,11 +10,18 @@
 -- Init
 local bot = {
 
-    -- Const
+    -- Consts --
     TOKEN     = "";
-    PARSEMODE = "HTML";
+    
+    -- Bot info
+    ID        = 0;
+    FIRSTNAME = "";
+    USERNAME  = "";
+
+    -- Param
     ADMINID   = 0;
     DEBUG     = false;
+    PARSEMODE = "HTML";
 
     -- Anti Spam conf & hash
     anti_spam = {
@@ -83,10 +90,18 @@ local multipart_encode = require("libs.multipart-post")
 -- BOT EVENTS
 -------------------------
 bot.event = {}
-bot.event.onInformSpammer  = function(message)        end
+
+-- Main events
 bot.event.onCallbackQuery  = function(callback)       end
 bot.event.onGetMessageText = function(message)        end
 bot.event.onMyChatMember   = function(my_chat_member) end
+
+-- Error Handling
+bot.event.onCommandErrorHandle = function(error, message) end
+bot.event.onEventErrorHandle   = function(error, message) end
+
+-- Other
+bot.event.onInformSpammer = function(message) end
 
 
 -------------------------
@@ -180,6 +195,15 @@ function bot:getMe(callback)
 
     -- Send the package
     makeRequestNoBody("/getMe", callback)
+
+end
+
+
+-- Returns a Chat object on success
+function bot:getChat(chat_id, callback)
+
+    -- Send the package
+    makeRequest("/getChat", {chat_id = chat_id}, callback)
 
 end
 
@@ -340,13 +364,11 @@ function bot:callCommand(user_command, text, user_id, message)
         end
 
         -- Pcall
-        local status, error = pcall(bot["cmd"][user_command], user_id, text, message)
+        local ok, error = pcall(bot["cmd"][user_command], user_id, text, message)
 
-        -- Send error
-        if (not status) then
-            if (bot.ADMINID ~= 0) then
-                bot:sendMessage({ chat_id = bot.ADMINID; text = "[error] " .. (user_command or "/") .. "\n" .. error })
-            end
+        -- Event error handling
+        if (not ok) then
+            bot.event.onCommandErrorHandle(error, message)
         end
 
     end)
@@ -362,16 +384,11 @@ local call_event = function(event, message)
     timer.setImmediate(function()
         
         -- Pcall
-        local status, error = pcall(event, message)
+        local ok, error = pcall(event, message)
 
-        -- Send error
-        if (not status) then
-            if (bot.ADMINID ~= 0) then
-                bot:sendMessage({
-                    chat_id = bot.ADMINID;
-                    text = "[error] " .. error
-                })
-            end
+        -- Event error handling
+        if (not ok) then
+            bot.event.onEventErrorHandle(error, message)
         end
 
     end)
@@ -478,7 +495,9 @@ local send_certificate = function(param, callback)
                 filename = param.certificate:match("[^/]*.$");
                 data = sert:read("*a");
             };
+
             drop_pending_updates = param.drop_pending_updates or false;
+            allowed_updates = param.allowed_updates or nil
         }
     )
 
@@ -548,11 +567,25 @@ function bot:startWebHook(options)
     :listen(options.port, "0.0.0.0")
 
     -- p
-    print("[ok] HTTP Server listening at 0.0.0.0:"..options.port)
+    print("[true] HTTP Server listening at 0.0.0.0:" .. options.port)
 
     -- Send sert
     send_certificate(options, function(result)
-        print("[ok] response: " .. result.description)
+
+        print(("[%s] response: %s"):format(result.ok, result.description))
+
+        -- Exit
+        if (not result.ok) then
+            os.exit()
+        end
+
+        -- Get bot info
+        bot:getMe(function(result)
+            bot.ID = result.id
+            bot.FIRSTNAME = result.first_name
+            bot.USERNAME = result.username
+        end)
+
     end)
 
 end

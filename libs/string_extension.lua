@@ -1,17 +1,33 @@
 --- ("Hello")[1] = H
 debug.getmetatable("").__index = function(self, n)
+
     if (type(n) == "number") then
         return self:sub(n, n)
     end  
 
     return string[n]
+
 end
 
+
 -- AAABBBCCC
-string.delrep = function(text)
-    local cs = text:sub(1, 1)
+string.delrep = function(text, optional)
+    
+    local sub
+    local gmatch
+
+    if optional then
+        sub    = optional.sub
+        gmatch = optional.gmatch
+    else
+        sub    = string.sub
+        gmatch = string.gmatch
+    end
+    
+    local cs = sub(text, 1, 1)
     local r = cs
-    for s in text:gmatch(".") do
+
+    for s in gmatch(text, ".") do
         if (cs ~= s) then
             cs = s
             r = r .. cs
@@ -21,15 +37,20 @@ string.delrep = function(text)
     return r
 end
 
+
 -- ("Hello World!"):slpit()
 string.split = function(text, sep)
+
     local result = {}
     local i = 1
+   
     for s in text:gmatch("[^"..sep.."]+") do
         result[i] = s
         i = i + 1
     end
+   
     return result
+
 end
 
 -- Sub s
