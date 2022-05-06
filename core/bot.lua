@@ -10,20 +10,16 @@
 -- Init
 local bot = {
 
-    -- Consts --
-    TOKEN     = "";
-    
-    -- Bot info
-    ID        = 0;
-    FIRSTNAME = "";
-    USERNAME  = "";
+    -- Consts
+    token      = "";
+    admin_id   = 0;
+    parse_mode = "HTML";
 
     -- Param
-    ADMINID   = 0;
-    DEBUG     = false;
-    PARSEMODE = "HTML";
+    debug = false;
 
     -- Anti Spam conf & hash
+    command_anti_spam = false;
     anti_spam = {
         users = {};
         setting = {
@@ -42,7 +38,7 @@ local bot = {
 -- Set the bot token
 function bot:setToken(token)
 
-    bot.TOKEN = token
+    bot.token = token
     return bot
 
 end
@@ -61,7 +57,7 @@ local pp = require('pretty-print').prettyPrint
 -- Debug Pretty Print
 local dprint = function(...)
 
-    if (bot.DEBUG) then
+    if (bot.debug) then
         pp(...)
     end
 
@@ -95,6 +91,7 @@ bot.event = {}
 bot.event.onCallbackQuery  = function(callback)       end
 bot.event.onGetMessageText = function(message)        end
 bot.event.onMyChatMember   = function(my_chat_member) end
+bot.event.onLeftChatMember = function(message)        end
 
 -- Error Handling
 bot.event.onCommandErrorHandle = function(error, message) end
@@ -119,7 +116,7 @@ local makeRequest = function(method, request_body, callback)
         -- Make options
         hostname = 'api.telegram.org',
         port = 443,
-        path = string.format("/bot%s%s", bot.TOKEN, method),
+        path = string.format("/bot%s%s", bot.token, method),
         method = 'POST',
         headers = {
             ['Content-Type'] = "multipart/form-data; boundary=" .. boundary;
@@ -159,7 +156,7 @@ local makeRequestNoBody = function(method, callback)
         -- Make options
         hostname = 'api.telegram.org',
         port = 443,
-        path = string.format("/bot%s%s", bot.TOKEN, method),
+        path = string.format("/bot%s%s", bot.token, method),
         method = 'POST'
 
     }, function() end)
@@ -212,8 +209,8 @@ end
 function bot:sendMessage(options, callback)
 
     -- Set Default Parse Mode
-    if bot.PARSEMODE then
-        options.parse_mode = bot.PARSEMODE
+    if bot.parse_mode then
+        options.parse_mode = bot.parse_mode
     end
 
     -- Send the package
@@ -235,8 +232,8 @@ end
 function bot:editMessageText(options, callback)
 
     -- Set Default Parse Mode
-    if bot.PARSEMODE then
-        options.parse_mode = bot.PARSEMODE
+    if bot.parse_mode then
+        options.parse_mode = bot.parse_mode
     end
 
     -- Send the package
@@ -358,9 +355,11 @@ function bot:callCommand(user_command, text, user_id, message)
         end
 
         -- Anti Spam
-        if bot.spam_detector(bot.anti_spam, message) then
-            bot.event.onInformSpammer(message)
-            return
+        if (bot.command_anti_spam) then
+            if bot.spam_detector(bot.anti_spam, message) then
+                bot.event.onInformSpammer(message)
+                return
+            end
         end
 
         -- Pcall
@@ -438,6 +437,12 @@ local parse_query = function(result)
         return "Get nil message"
     end
 
+    -- Left chat member
+    if (result.message.left_chat_member) then
+        return call_event(bot.event.onLeftChatMember, result.message)
+    end
+
+    -- Entities
     if (result.message.entities) then
 
         -- Empty entities
@@ -567,27 +572,96 @@ function bot:startWebHook(options)
     :listen(options.port, "0.0.0.0")
 
     -- p
-    print("[true] HTTP Server listening at 0.0.0.0:" .. options.port)
+    dprint("[true] HTTP Server listening at 0.0.0.0:" .. options.port)
 
     -- Send sert
-    send_certificate(options, function(result)
+    send_certificate(options, function(res)
 
-        print(("[%s] response: %s"):format(result.ok, result.description))
+        dprint(("[%s] description: %s"):format(res.ok, res.description))
 
         -- Exit
-        if (not result.ok) then
+        if (not res.ok) then
             os.exit()
         end
 
         -- Get bot info
-        bot:getMe(function(result)
-            bot.ID = result.id
-            bot.FIRSTNAME = result.first_name
-            bot.USERNAME = result.username
+        bot:getMe(function(responce)
+
+            -- Make bot info
+            for k, v in pairs(responce.result) do
+                bot[k] = v
+            end
+
         end)
 
     end)
 
+end
+
+
+-------------------------
+-- START LONG POLLING
+-------------------------
+function bot:startLongPolling(options)
+    
+    -- Current test
+    assert(type(options)        == "table",  "[error] In function startLongPolling argument 'param' is not table.")
+    assert(type(options.token)  == "string", "[error] In function startLongPolling argument 'param.token' is not string.")
+
+    -- Options
+    local update_id = 0
+    local offset = options.offset or -1
+    local polling_timeout = options.polling_timeout or 60
+    
+    --
+    local getUpdates
+    getUpdates = function(first_start)
+        local req = https.request({
+            -- Make options
+            hostname = 'api.telegram.org',
+            port = 443,
+            path = string.format("/bot%s/getUpdates?offset=%d&timeout=%d", options.token, offset, polling_timeout),
+            method = 'GET'
+        }, function(res)
+
+            res:on('data', function(chunk)
+                -- Get data
+                local responce = json.decode(chunk)
+
+                -- First start
+                if (first_start) then
+                    first_start = false
+
+                    if (not responce.ok) then
+                        dprint(("[%s] error_code: %s | description: %s"):format(tostring(responce.ok), responce.error_code, responce.description))
+                        return
+                    end
+
+                    dprint("[true] Start long polling")
+                end
+
+                --
+                if (responce.ok) then
+                    for i = 1, #responce.result do
+                        -- Parse
+                        parse_query(responce.result[i])
+
+                        -- Inc offset
+                        offset = responce.result[i].update_id + 1
+                    end
+
+                    -- Get new updates
+                    getUpdates()
+                end
+
+            end) --- res:on
+        end) -- https.request
+
+        req:done()
+    end
+
+    -- Start long polling
+    getUpdates(true)
 end
 
 return bot
