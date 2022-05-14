@@ -1,3 +1,12 @@
+--[[
+    ####--------------------------------####
+    #--# Author:   by uriid1            #--#
+    #--# License:  GNU GPLv3            #--#
+    #--# Telegram: @main_moderator      #--#
+    #--# E-mail:   appdurov@gmail.com   #--#
+    ####--------------------------------####
+--]]
+
 --- ("Hello")[1] = H
 debug.getmetatable("").__index = function(self, n)
 
@@ -13,16 +22,8 @@ end
 -- AAABBBCCC
 string.delrep = function(text, optional)
     
-    local sub
-    local gmatch
-
-    if optional then
-        sub    = optional.sub
-        gmatch = optional.gmatch
-    else
-        sub    = string.sub
-        gmatch = string.gmatch
-    end
+    local sub    = optional and optional.sub    or string.sub
+    local gmatch = optional and optional.gmatch or string.gmatch
     
     local cs = sub(text, 1, 1)
     local r = cs

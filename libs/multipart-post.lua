@@ -1,3 +1,12 @@
+--[[
+    ####--------------------------------####
+    #--# Author:   by uriid1            #--#
+    #--# License:  GNU GPLv3            #--#
+    #--# Telegram: @main_moderator      #--#
+    #--# E-mail:   appdurov@gmail.com   #--#
+    ####--------------------------------####
+--]]
+
 local pairs         = pairs
 local tostring      = tostring
 local os_time       = os.time

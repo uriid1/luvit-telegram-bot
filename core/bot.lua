@@ -1,11 +1,11 @@
 --[[
-####--------------------------------####
-#--# Author:   by uriid1            #--#
-#--# license:  GNU GPLv3            #--#
-#--# telegram: @main_moderator      #--#
-#--# Mail:     appdurov@gmail.com   #--#
-####--------------------------------####
-]]
+    ####--------------------------------####
+    #--# Author:   by uriid1            #--#
+    #--# License:  GNU GPLv3            #--#
+    #--# Telegram: @main_moderator      #--#
+    #--# E-mail:   appdurov@gmail.com   #--#
+    ####--------------------------------####
+--]]
 
 -- Init
 local bot = {
