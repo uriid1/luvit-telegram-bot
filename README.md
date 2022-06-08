@@ -1,6 +1,6 @@
 # luvit-telegram-bot
 
-# Examle
+# Exemple
 ```lua
 -- Simple Echo Bot
 -- Bot
