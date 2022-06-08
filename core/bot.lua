@@ -70,9 +70,6 @@ end
 -- Extend String
 require("libs.string_extension")
 
--- Timer
-local timer = require 'timer'
-
 -- http(s)
 local http   = require("http")
 local https  = require("https")
@@ -347,30 +344,25 @@ end
 -------------------------
 function bot:callCommand(user_command, text, user_id, message)
 
-    timer.setImmediate(function()
+    if (not bot["cmd"][user_command]) then
+        return
+    end
 
-        --
-        if (not bot["cmd"][user_command]) then
+    -- Anti Spam
+    if (bot.command_anti_spam) then
+        if bot.spam_detector(bot.anti_spam, message) then
+            bot.event.onInformSpammer(message)
             return
         end
+    end
 
-        -- Anti Spam
-        if (bot.command_anti_spam) then
-            if bot.spam_detector(bot.anti_spam, message) then
-                bot.event.onInformSpammer(message)
-                return
-            end
-        end
+    -- Pcall
+    local ok, error = pcall(bot["cmd"][user_command], user_id, text, message)
 
-        -- Pcall
-        local ok, error = pcall(bot["cmd"][user_command], user_id, text, message)
-
-        -- Event error handling
-        if (not ok) then
-            bot.event.onCommandErrorHandle(error, message)
-        end
-
-    end)
+    -- Event error handling
+    if (not ok) then
+        bot.event.onCommandErrorHandle(error, message)
+    end
 
 end
 
@@ -379,18 +371,14 @@ end
 -- EVENT HANDLER
 -------------------------------
 local call_event = function(event, message)
+    
+    -- Pcall
+    local ok, error = pcall(event, message)
 
-    timer.setImmediate(function()
-        
-        -- Pcall
-        local ok, error = pcall(event, message)
-
-        -- Event error handling
-        if (not ok) then
-            bot.event.onEventErrorHandle(error, message)
-        end
-
-    end)
+    -- Event error handling
+    if (not ok) then
+        bot.event.onEventErrorHandle(error, message)
+    end
 
 end
 
