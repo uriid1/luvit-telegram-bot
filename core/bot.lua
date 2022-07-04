@@ -464,7 +464,7 @@ end
 
 
 -------------------------
--- SEND SERTIFICATE
+-- SEND CERTIFICATE
 -------------------------
 
 -- Curl example
@@ -477,25 +477,27 @@ local send_certificate = function(param, callback)
     assert(type(param.url)         == "string", "[error] In function send_certificate argument 'param.url' is not string.")
     assert(type(param.certificate) == "string", "[error] In function send_certificate argument 'param.certificate' is not string.")
     assert(type(param.token)       == "string", "[error] In function send_certificate argument 'param.token' is not string.")
-    
-    -- Make multipart-data
-    local sert = io.open(param.certificate, "rb")
 
+    -- Certificate
+    local cert_data
+    if (param.certificate ~= "non-self-signed") then
+        local cert = io.open(param.certificate, "rb")
+        cert_data = {
+            filename = param.certificate:match("[^/]*.$");
+            data = cert:read("*a");
+        }
+        cert:close()
+    end
+
+    -- Make multipart-data
     local body, boundary = multipart_encode(
         {
             url = param.url;
-            certificate = {
-                filename = param.certificate:match("[^/]*.$");
-                data = sert:read("*a");
-            };
-
+            certificate = cert_data;
             drop_pending_updates = param.drop_pending_updates or false;
             allowed_updates = param.allowed_updates or nil
         }
     )
-
-    --
-    sert:close()
 
     -- Request
     local req = https.request({
@@ -562,7 +564,7 @@ function bot:startWebHook(options)
     -- p
     dprint("[true] HTTP Server listening at 0.0.0.0:" .. options.port)
 
-    -- Send sert
+    -- Send cert
     send_certificate(options, function(res)
 
         dprint(("[%s] description: %s"):format(res.ok, res.description))
