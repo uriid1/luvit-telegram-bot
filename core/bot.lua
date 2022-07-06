@@ -47,9 +47,10 @@ end
 -------------------------
 -- Power Functions
 -------------------------
+local path = require('path')
 
 -- Anti spam detector
-bot.spam_detector = require("extensions.command_antispam_checker").spam_detector
+bot.spam_detector = require(path.join("..", "extensions", "command_antispam_checker")).spam_detector
 
 -- Pretty Print
 local pp = require('pretty-print').prettyPrint
@@ -68,7 +69,7 @@ end
 -- Libs
 -------------------------
 -- Extend String
-require("libs.string_extension")
+require(path.join("..", "libs", "string_extension"))
 
 -- http(s)
 local http   = require("http")
@@ -76,7 +77,7 @@ local https  = require("https")
 
 -- Parse
 local json = require('json')
-local multipart_encode = require("libs.multipart-post")
+local multipart_encode = require(path.join("..", "libs", "multipart-post"))
 
 
 -------------------------
@@ -463,9 +464,41 @@ local parse_query = function(result)
 end
 
 
--------------------------
--- SEND CERTIFICATE
--------------------------
+--------------------------------------
+-- WEBHOOK
+--------------------------------------
+
+-- getWebhookInfo
+-- https://core.telegram.org/bots/api#getwebhookinfo
+function bot:getWebhookInfo(callback)
+
+    -- Send the package
+    makeRequestNoBody("/getWebhookInfo", callback)
+
+end
+
+-- setWebhook
+-- https://core.telegram.org/bots/api#setWebhook
+function bot:setWebhook(options, callback)
+
+    -- Send the package
+    makeRequest("/setWebhook", options, callback)
+
+end
+
+-- deleteWebhook
+-- https://core.telegram.org/bots/api#deleteWebhook
+function bot:deleteWebhook(options, callback)
+
+    -- Send the package
+    makeRequest("/deleteWebhook", options, callback)
+
+end
+
+
+--------------------------------------
+-- SEND CERTIFICATE AND SET WEBHOOK
+--------------------------------------
 
 -- Curl example
 -- curl -F "url=https://IP/bot" -F "certificate=@/etc/nginx/ssl/PUBLIC.pem" https://api.telegram.org/botTOKEN/setwebhook
@@ -489,50 +522,13 @@ local send_certificate = function(param, callback)
         cert:close()
     end
 
-    -- Make multipart-data
-    local body, boundary = multipart_encode(
-        {
-            url = param.url;
-            certificate = cert_data;
-            drop_pending_updates = param.drop_pending_updates or false;
-            allowed_updates = param.allowed_updates or nil
-        }
-    )
-
-    -- Request
-    local req = https.request({
-
-        -- Make options
-        hostname = 'api.telegram.org',
-        port = 443,
-        path = string.format("/bot%s/setwebhook", param.token),
-        method = 'POST',
-        headers = {
-            ['content-type'] = "multipart/form-data; boundary=" .. boundary;
-            ['content-length'] = string.len(body);
-        }
-
-    }, function() end)
-
-    -- Get response
-    req:on("response", function(response)
-
-        local data = ""
-
-        response:on("data", function(chunk)
-            data = data .. chunk
-        end)
-
-        response:on("end", function()
-            if callback then
-                callback(json.decode(data))
-            end
-        end)
-
-    end)
-
-    req:write(body)
-    req:done()
+    -- Set WH
+    bot:setWebhook({
+        url = param.url;
+        certificate = cert_data;
+        drop_pending_updates = param.drop_pending_updates or false;
+        allowed_updates = param.allowed_updates or nil
+    }, callback)
 
 end
 
@@ -604,6 +600,9 @@ function bot:startLongPolling(options)
     local polling_timeout = options.polling_timeout or 60
     
     --
+    dprint("[true] Gettin Updates")
+
+    --
     local getUpdates
     getUpdates = function(first_start)
         local req = https.request({
@@ -613,7 +612,6 @@ function bot:startLongPolling(options)
             path = string.format("/bot%s/getUpdates?offset=%d&timeout=%d", options.token, offset, polling_timeout),
             method = 'GET'
         }, function(res)
-
             res:on('data', function(chunk)
                 -- Get data
                 local responce = json.decode(chunk)
@@ -627,7 +625,7 @@ function bot:startLongPolling(options)
                         return
                     end
 
-                    dprint("[true] Start long polling")
+                    dprint("[true] Long polling work")
                 end
 
                 --
