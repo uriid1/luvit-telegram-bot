@@ -5,6 +5,7 @@
 -- Simple Echo Bot
 -- Bot
 local bot = require("./core/bot"):setToken("123456789:AABBCCDDEEFFF-FGGHHKKLL")
+bot.debug = true
 
 -- Event get message
 bot.event.onGetMessageText = function(message)

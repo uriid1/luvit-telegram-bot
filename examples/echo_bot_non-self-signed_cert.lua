@@ -33,7 +33,7 @@ end
 bot:startWebHook({
     token       = bot.token;
     port        = PORT;
-    url         = URL;
+    url         = URL; -- https://mysite.name/telegram_bot
     certificate = 'non-self-signed';
 
     -- Optional
