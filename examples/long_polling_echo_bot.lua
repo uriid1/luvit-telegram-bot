@@ -1,12 +1,14 @@
 --[[ Instruction
-1) Move this example to the luvit-telegram-bot directory
-2) Set bot token
-3) run luvit long_polling_echo_bot
+1) Set bot token
+2) run luvit long_polling_echo_bot
 --]]
+
+-- Luvit func
+local path = require("path")
 
 -- Simple Echo Bot
 -- Bot
-local bot = require("./core/bot"):setToken("1234567:AABBDDCCSS-MMEERRFF")
+local bot = require(path.join("..", "core", "bot")):setToken("123456789:AABBCCDDEEFFFFGGHHKKLL")
 bot.debug = true
 
 -- Event get message

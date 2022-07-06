@@ -1,11 +1,13 @@
 --[[ Instruction
-1) Move this example to the luvit-telegram-bot directory
-2) Set bot token, url, cert, port 
-3) run luvit callback_query_anti_spam
+1) Set bot token, url, cert, port 
+2) run luvit callback_query_anti_spam
 --]]
 
+-- Luvit func
+local path = require("path")
+
 -- Bot
-local bot = require("./core/bot"):setToken("123456789:AABBCCDDEEFFFFGGHHKKLL")
+local bot = require(path.join("..", "core", "bot")):setToken("123456789:AABBCCDDEEFFFFGGHHKKLL")
 bot.debug = true
 
 -- Options

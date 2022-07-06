@@ -3,8 +3,12 @@
 # Exemple
 ```lua
 -- Simple Echo Bot
+
+-- Luvit func
+local path = require("path")
+
 -- Bot
-local bot = require("./core/bot"):setToken("123456789:AABBCCDDEEFFF-FGGHHKKLL")
+local bot = require(path.join(module.dir, "core", "bot")):setToken("1234567:AABBDDCCSS-MMEERRFF")
 bot.debug = true
 
 -- Event get message
